@@ -1236,9 +1236,11 @@ getvalue_t getValue(uint8_t i)
   else if (i==MIXSRC_SG) return (switchState(SW_SG0) ? -1024 : (switchState(SW_SG1) ? 0 : 1024));
   else if (i==MIXSRC_SH) return (switchState(SW_SH0) ? -1024 : 1024);
 #else
-  else if (i==MIXSRC_3POS) return (switchState(SW_ID0) ? -1024 : (switchState(SW_ID1) ? 0 : 1024));
+  else if (i==MIXSRC_3POS) return (getSwitch(SW_ID0-SW_BASE+1) ? -1024 : (getSwitch(SW_ID1-SW_BASE+1) ? 0 : 1024));
+  // don't use switchState directly to give getSwitch possibility to hack values if needed for switch warning 
 #if defined(EXTRA_3POS)
-  else if (i==MIXSRC_3POS2) return (switchState(SW_ID3) ? -1024 : (switchState(SW_ID4) ? 0 : 1024));
+  else if (i==MIXSRC_3POS2) return (getSwitch(SW_ID3-SW_BASE+1) ? -1024 : (getSwitch(SW_ID4-SW_BASE+1) ? 0 : 1024));
+  // don't use switchState directly to give getSwitch possibility to hack values if needed for switch warning 
 #endif
 #endif
 
@@ -1348,6 +1350,10 @@ void get3POSSwitchesPosition()
 
 int16_t csLastValue[NUM_CSW];
 #define CS_LAST_VALUE_INIT -32768
+// param swtch may be (negativ sign ignored)
+// 0 --> no source 
+// 1 .. 9 (or max switches) --> returns switch value including 3pos 
+// others internal switches etc.
 bool getSwitch(int8_t swtch)
 {
   bool result;
@@ -1552,17 +1558,44 @@ int8_t getMovedSwitch()
     }
   }
 #else
+  // saves about 50 bytes flash
+  // returns
+  // delivers 1 to 3 for 3 ID1 to ID3
+  // 4..8 for all other switches if changed to true
+  // -4..-8 for all other switches if changed to false
+  // 9 for Trainer switch if changed to true; Change to false is ignored
+  
+  swstate_t mask=0x80;
+  for (uint8_t i=MAX_PSWITCH; i>1; i--) {
+    bool prev;
+    // mask= (1<<(i-2));
+    prev=(switches_states & mask);
+    // don't use getSwitch here to always get the proper value, even getSwitch manipulates
+    // bool next = getSwitch(i);
+    bool next = switchState((EnumKeys)(SW_BASE+i-1));
+    if (prev!=next) {
+      if (((i<MAX_PSWITCH) && (i>3)) || next==true) 
+        result = next ? i : -i;
+      if ((i<=3) && (result==0)) result=1;
+      switches_states ^= mask;
+    }
+    mask>>=1;
+  }
+
+/*
   for (uint8_t i=MAX_PSWITCH; i>0; i--) {
     bool prev;
     swstate_t mask = 0;
     if (i <= 3) {
       prev = ((switches_states & 0x03) == (i-1));
     }
-    else {
+    else {  
       mask = (1<<(i-2));
       prev = (switches_states & mask);
     }
-    bool next = getSwitch(i);
+    // don't use getSwitch here to always get the proper value, even getSwitch manipulates
+    // bool next = getSwitch(i);
+    bool next = switchState((EnumKeys)(SW_BASE+i-1));
     if (prev != next) {
       if (i!=MAX_PSWITCH || next==true)
         result = next ? i : -i;
@@ -1572,7 +1605,7 @@ int8_t getMovedSwitch()
         switches_states = (switches_states & 0xFC) | (i-1);
       }
     }
-  }
+  } //endfor */
 #endif
 
   if ((tmr10ms_t)(get_tmr10ms() - s_move_last_time) > 10)
@@ -2108,6 +2141,22 @@ void doSplash()
 #define doSplash()
 #endif
 
+// #define INPUT_WARNINGS_GENERATE_SIM_DATA
+// the latests deliveries from 9x transmitters (since 2 years now, 2014) do not stop sending if no pulses are generated.
+// This fact totally breaks the nice throttle and switch warning concept, because even we prevent sending pulses the
+// transmitter modul ignores this, and continous to send the last value or 0 at beginning. And 0 means in the middle of throttle -> 50%.
+// To cope with this situation, we need a new concept how to handle throttle and switch warnings.
+// My solution is, not to stop pulses at all. In warning situation the input of the appropriate channels are ignored and
+// replaced with a value which wouldn't generate the warning, e.g. for throttle -100%
+// Because this new concept is also compatible with the better (older) transmitter we can enable it by default and let the user choose if
+// he want's the old handling or new one.
+
+#if defined(PCBTARANIS) && defined(INPUT_WARNINGS_GENERATE_SIM_DATA)
+#error "INPUT_WARNINGS_GENERATE_SIM_DATA is not yet implemented for Taranis build."
+// according current transmitters, this shouldn't be necessary as well
+// but if wanted the switch simulation part needs to be simulated the same way as for stock
+#endif
+
 void checkAll()
 {
 #if !defined(PCBSKY9X)
@@ -2153,17 +2202,6 @@ void checkLowEEPROM()
   }
 }
 #endif
-
-// #define INPUT_WARNINGS_GENERATE_SIM_DATA
-// the latests deliveries from 9x transmitters (since 2 years now, 2014) do not stop sending if no pulses are generated.
-// This fact totally breaks the nice throttle and switch warning concept, because even we prevent sending pulses the
-// transmitter modul ignores this, and continous to send the last value or 0 at beginning. And 0 means in the middle of throttle -> 50%.
-// To cope with this situation, we need a new concept how to handle throttle and switch warnings.
-// My solution is, not to stop pulses at all. In warning situation the input of the appropriate channels are ignored and
-// replaced with a value which wouldn't generate the warning, e.g. for throttle -100%
-// Because this new concept is also compatible with the better (older) transmitter we can enable it by default and let the user choose if
-// he want's the old handling or new one.
-
 
 void checkTHR()
 {
@@ -2227,7 +2265,12 @@ void checkAlarm() // added by Gohst
 
 void checkSwitches()
 {
+#ifdef INPUT_WARNINGS_GENERATE_SIM_DATA
+  static swstate_t last_bad_switches = 0xff;
+#else
   swstate_t last_bad_switches = 0xff;
+#endif
+
   swstate_t states = g_model.switchWarningStates;
 #if defined(PCBTARANIS)
   uint8_t bad_pots = 0, last_bad_pots = 0xff;
@@ -2242,7 +2285,7 @@ void checkSwitches()
 #endif  //INPUT_WARNINGS_GENERATE_SIM_DATA
     getMovedSwitch();
   
-    uint8_t warn = false;
+    bool warn = false;
 #if defined(PCBTARANIS)
     for (uint8_t i=0; i<NUM_SWITCHES-1; i++) {
       if (!(g_model.nSwToWarn & (1<<i))) {
@@ -2262,15 +2305,19 @@ void checkSwitches()
           }
     }
 #else
-    for (uint8_t i=0; i<MAX_PSWITCH-2; i++) 
-      if (!(g_model.nSwToWarn & (1<<(i-1)))) 
-        if((states & (1 << i)) != (switches_states & (1 << i)))
+    uint8_t nSwWarn = g_model.nSwToWarn;
+    nSwWarn=(nSwWarn<<1)|(nSwWarn&1);   // duplicate first bit because states has first two bits for ID, but nSwToWarn has only one
+    for (uint8_t i=0; i<MAX_PSWITCH-2; i++) {
+      if (!(nSwWarn & (1<<i))) 
+        if((states & (1<<i)) != (switches_states & (1<<i)))
           warn = true;
+    }
 #endif
 
 #ifdef INPUT_WARNINGS_GENERATE_SIM_DATA
     if (!warn) {
       checkWarningState=e_InWarnFinished;
+      last_bad_switches = 0xff;
       return;
     }
 #else
@@ -2314,13 +2361,14 @@ void checkSwitches()
       last_bad_pots = bad_pots;
 #else
     if (last_bad_switches != switches_states) {
-      MESSAGE(STR_SWITCHWARN, NULL, STR_PRESSANYKEYTOSKIP, last_bad_switches == 0xff ? AU_SWITCH_ALERT : AU_NONE);
+      MESSAGE(STR_SWITCHWARN, NULL, STR_PRESSANYKEYTOSKIP, last_bad_switches == 0xff? AU_SWITCH_ALERT : AU_NONE);
       uint8_t x = 2;
       for (uint8_t i=1; i<MAX_PSWITCH-1; i++) {
         uint8_t attr = (states & (1 << (i-1))) == (switches_states & (1 << (i-1))) ? 0 : INVERS;
-        if(!(g_model.nSwToWarn & (1<<(i-2)))) putsSwitches(x, 5*FH, (i>2?(i+1):1+((states>>1)&0x3)), attr);
+        if(!(nSwWarn & (1<<(i-1)))) 
+          putsSwitches(x, 5*FH, (i>2?(i+1):1+(states&0x3)), attr);
         if (i == 1 && attr) i++;
-        if (i != 1) x += 3*FW+FW/2;
+        if (i>1) x += 3*FW+FW/2;
       }
 #endif
       lcdRefresh();
@@ -2331,6 +2379,7 @@ void checkSwitches()
     // checkWarningState=e_InWarnSwitchWarnActive; not needed, because redraw is prevented with last switch compare
     if (pwrCheck()==e_power_off || keyDown()) {
       checkWarningState=e_InWarnFinished;
+      last_bad_switches = 0xff;
       // return; // Usb on or power off
     }    
 #else

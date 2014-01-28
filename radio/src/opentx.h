@@ -830,7 +830,7 @@ enum InputWarningStates {
   e_InWarnBegin               = 0,
   e_InWarnThrottleWarnActive  = 1,
   e_InWarnStartSwitchWarn     = 2,
-  // e_InWarnSwitchWarnActive    = 3,
+  // e_InWarnSwitchWarnActive    = 3,  currently not needed
   e_InWarnFinished            = 3,
 };
 #endif
