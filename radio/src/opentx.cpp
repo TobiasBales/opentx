@@ -1370,7 +1370,22 @@ bool getSwitch(int8_t swtch)
 #if defined(PCBTARANIS)
     result = SWITCH_POSITION(cs_idx-SWSRC_SA0);
 #else
+#ifdef INPUT_WARNINGS_GENERATE_SIM_DATA
     result = switchState((EnumKeys)(SW_BASE+cs_idx-1));
+    if (checkWarningState<e_InWarnFinished) {
+      // if throttle or switch warning is currently active, ignore actual stick position and use wanted values
+      if (cs_idx<=3) {
+        if (!(g_model.nSwToWarn&1)) {     // ID1 to ID3 is just one bit in nSwToWarn
+          result=(cs_idx)==((g_model.switchWarningStates&3)+1);  // overwrite result with desired value
+        }
+      } else if (!(g_model.nSwToWarn&(1<<(cs_idx-3)) )) {
+        // current switch should not be ignored for warning
+        result=g_model.switchWarningStates&(1<<(cs_idx-2)); // overwrite result with desired value
+      }
+    }
+#else
+    result = switchState((EnumKeys)(SW_BASE+cs_idx-1));
+#endif  // INPUT_WARNINGS_GENERATE_SIM_DATA
 #endif
   }
   else {
@@ -2152,7 +2167,7 @@ void doSplash()
 // he want's the old handling or new one.
 
 #if defined(PCBTARANIS) && defined(INPUT_WARNINGS_GENERATE_SIM_DATA)
-#error "INPUT_WARNINGS_GENERATE_SIM_DATA is not yet implemented for Taranis build."
+// #error "INPUT_WARNINGS_GENERATE_SIM_DATA is not yet implemented for Taranis build."
 // according current transmitters, this shouldn't be necessary as well
 // but if wanted the switch simulation part needs to be simulated the same way as for stock
 #endif
