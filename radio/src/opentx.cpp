@@ -2383,7 +2383,7 @@ void checkSwitches()
         if(!(nSwWarn & (1<<(i-1)))) 
           putsSwitches(x, 5*FH, (i>2?(i+1):1+(states&0x3)), attr);
         if (i == 1 && attr) i++;
-        if (i>1) x += 3*FW+FW/2;
+        if (i != 1) x += 3*FW+FW/2;
       }
 #endif
       lcdRefresh();
