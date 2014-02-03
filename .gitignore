@@ -1,0 +1,4 @@
+src/eeprom.bin
+src/simu
+src/simu.d
+src/stamp-opentx.h
