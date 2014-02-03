@@ -4555,13 +4555,13 @@ void menuModelCustomSwitches(uint8_t event)
 #if defined(CPUARM)
     // CSW duration
     if (cs->duration > 0)
-      lcd_outdezAtt(CSW_5TH_COLUMN, y, 5*cs->duration, (horz==4 ? attr : 0)|PREC1|LEFT);
+      lcd_outdezAtt(CSW_5TH_COLUMN, y, 2*cs->duration, (horz==4 ? attr : 0)|PREC1|LEFT);
     else
       lcd_putsiAtt(CSW_5TH_COLUMN, y, STR_MMMINV, 0, horz==4 ? attr : 0);
 
     // CSW delay
     if (cs->delay > 0)
-      lcd_outdezAtt(CSW_6TH_COLUMN, y, 5*cs->delay, (horz==5 ? attr : 0)|PREC1|LEFT);
+      lcd_outdezAtt(CSW_6TH_COLUMN, y, 2*cs->delay, (horz==5 ? attr : 0)|PREC1|LEFT);
     else
       lcd_putsiAtt(CSW_6TH_COLUMN, y, STR_MMMINV, 0, horz==5 ? attr : 0);
 #endif

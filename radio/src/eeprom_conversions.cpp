@@ -375,8 +375,8 @@ void ConvertModel_215_to_216(ModelData &model)
   }
   for (uint8_t i=0; i<32; i++) {
     g_model.customSw[i] = oldModel.customSw[i];
-#if defined(PCBTARANIS)
     CustomSwData * cs = &g_model.customSw[i];
+#if defined(PCBTARANIS)
     uint8_t cstate = cswFamily(cs->func);
     if (cstate == CS_VOFS || cstate == CS_VCOMP || cstate == CS_VDIFF) {
       if (cs->v1 > 0) cs->v1 += MAX_INPUTS + MAX_SCRIPTS*MAX_SCRIPT_OUTPUTS;
@@ -431,6 +431,8 @@ void ConvertModel_215_to_216(ModelData &model)
       if (cs->v2 > MIXSRC_GVAR1+4) cs->v2 += 4;
     }
 #endif
+    cs->delay = cs->delay*5/2;
+    cs->duration = cs->duration*5/2;
   }
   for (uint8_t i=0; i<32; i++) {
     g_model.funcSw[i] = oldModel.funcSw[i];
