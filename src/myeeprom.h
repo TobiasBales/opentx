@@ -126,6 +126,10 @@ typedef int16_t gvar_t;
   #define GVAR_MAX  1024
 #endif
 
+#if defined(STATES)
+  typedef char state_value_t[12];
+#endif
+
 #define RESERVE_RANGE_FOR_GVARS 10
 // even we do not spend space in EEPROM for 10 GVARS, we reserve the space inside the range of values, like offset, weight, etc.
 
@@ -143,6 +147,14 @@ typedef int16_t gvar_t;
   #define MODEL_GVARS_DATA gvar_name_t gvarsNames[MAX_GVARS];
   #define PHASE_GVARS_DATA gvar_t gvars[MAX_GVARS]
   #define GVAR_VALUE(x, p) g_model.phaseData[p].gvars[x]
+#endif
+
+#if defined(STATES)
+  #define MAX_STATES 4
+  #define MAX_STATE_VALUES 5
+  #define MODEL_STATES_DATA state_value_t statesValues[MAX_STATES][MAX_STATE_VALUES];
+#else
+  #define MODEL_STATES_DATA
 #endif
 
 PACK(typedef struct t_TrainerMix {
@@ -163,6 +175,9 @@ PACK(typedef struct t_FrSkyRSSIAlarm {
 
 #if defined(PCBTARANIS)
 enum MainViews {
+#if defined(STATES)
+  VIEW_STATES,
+#endif
   VIEW_TIMERS,
   VIEW_INPUTS,
   VIEW_SWITCHES,
@@ -170,11 +185,14 @@ enum MainViews {
 };
 #else
 enum MainViews {
+#if defined(STATES)
+  VIEW_STATES,
+#endif
   VIEW_OUTPUTS_VALUES,
   VIEW_OUTPUTS_BARS,
   VIEW_INPUTS,
   VIEW_TIMER2,
-  VIEW_COUNT
+  VIEW_COUNT,
 };
 #endif
 
@@ -613,6 +631,10 @@ enum Functions {
 #if defined(GVARS)
   FUNC_ADJUST_GV1,
   FUNC_ADJUST_GVLAST = (FUNC_ADJUST_GV1 + (MAX_GVARS-1)),
+#endif
+#if defined(STATES)
+  FUNC_ADJUST_STATE1,
+  FUNC_ADJUST_STATELAST = (FUNC_ADJUST_STATE1 + (MAX_STATES-1)),
 #endif
 #if defined(DEBUG)
   FUNC_TEST, // should remain the last before MAX as not added in companion9x
@@ -1305,10 +1327,12 @@ PACK(typedef struct t_ModelData {
 
   int8_t    ppmFrameLength;       // 0=22.5ms  (10ms-30ms) 0.5ms increments
   uint8_t   thrTraceSrc;
-  
+
   swstate_t switchWarningStates;
 
   MODEL_GVARS_DATA
+
+  MODEL_STATES_DATA
 
   TELEMETRY_DATA
 

@@ -242,6 +242,10 @@ CURVES = YES
 # Values = YES, NO
 GVARS = NO
 
+# States
+# Values = YES, NO
+STATES = NO
+
 # Enable another 3 positions switch to replace a pot
 # Values = NO, POT1, POT2, POT3,
 3POS = NO
@@ -266,6 +270,7 @@ GVARS_VARIANT  = +1
 FRSKY_VARIANT  = +2
 3POS_VARIANT   = +4
 MAVLINK_VARIANT   = +8
+STATES_VARIANT = +16
 M128_VARIANT   = +32768
 M2561_VARIANT  = +16384
 EEPROM_VARIANT = 0
@@ -798,6 +803,14 @@ endif
 ifeq ($(GVARS), YES)
   CPPDEFS += -DGVARS
   EEPROM_VARIANT += ${GVARS_VARIANT}
+endif
+
+ifeq ($(STATES), YES)
+  ifneq ($(PCB), TARANIS)
+    $(error Sorry, states are only available for taranis radios)
+  endif
+  CPPDEFS += -DSTATES
+  EEPROM_VARIANT += ${STATES_VARIANT}
 endif
 
 ifeq ($(CORRECT_NEGATIVE_VALUES), YES)

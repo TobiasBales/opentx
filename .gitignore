@@ -1,4 +1,9 @@
+src/allsrc.o
 src/eeprom.bin
+src/opentx.bin
+src/opentx.elf
+src/opentx.lst
+src/opentx.map
 src/simu
 src/simu.d
 src/stamp-opentx.h

@@ -617,9 +617,12 @@ void menuMainView(uint8_t event)
   }
 
   {
-    // Flight Phase Name
     uint8_t phase = s_perout_flight_phase;
-    lcd_putsnAtt(PHASE_X, PHASE_Y, g_model.phaseData[phase].name, sizeof(g_model.phaseData[phase].name), ZCHAR|PHASE_FLAGS);
+
+    if (g_eeGeneral.view != VIEW_STATES) {
+      // Flight Phase Name
+      lcd_putsnAtt(PHASE_X, PHASE_Y, g_model.phaseData[phase].name, sizeof(g_model.phaseData[phase].name), ZCHAR|PHASE_FLAGS);
+    }
 
     // Model Name
     putsModelName(MODELNAME_X, MODELNAME_Y, g_model.header.name, g_eeGeneral.currModel, BIGSIZE);
@@ -640,35 +643,38 @@ void menuMainView(uint8_t event)
   // Top bar
   displayTopBar();
 
-  // Sliders (Pots / Sliders)
-  displaySliders();
-
-  lcd_bmp(BITMAP_X, BITMAP_Y, modelBitmap);
+  if (g_eeGeneral.view != VIEW_STATES) {
+    // Sliders (Pots / Sliders)
+    displaySliders();
+    lcd_bmp(BITMAP_X, BITMAP_Y, modelBitmap);
 
   // Switches
-  for (uint8_t i=0; i<8; i++) {
-    getvalue_t sw;
-    getvalue_t val;
-    // TODO simplify this + reuse code in checkSwitches() + Menu MODELSETUP
-    switch(i) {
-      case 5:
-        sw = getValue(MIXSRC_SF-1) > 0 ? 3*i+2 : 3*i+1;
-        break;
-      case 6:
-        val = getValue(MIXSRC_SG-1);
-        sw = ((val < 0) ? 3*i : ((val == 0) ? 3*i+1 : 3*i+2));
-        break;     
-      case 7:
-        sw = getValue(MIXSRC_SH-1) > 0 ? 3*i+1 : 3*i;
-        break;
-      default:
-      {
-        val = getValue(MIXSRC_SA+i-1);
-        sw = ((val < 0) ? 3*i+1 : ((val == 0) ? 3*i+2 : 3*i+3));
-        break;
+    for (uint8_t i=0; i<8; i++) {
+      getvalue_t sw;
+      getvalue_t val;
+      // TODO simplify this + reuse code in checkSwitches() + Menu MODELSETUP
+      switch(i) {
+        case 5:
+          sw = getValue(MIXSRC_SF-1) > 0 ? 3*i+2 : 3*i+1;
+          break;
+        case 6:
+          val = getValue(MIXSRC_SG-1);
+          sw = ((val < 0) ? 3*i : ((val == 0) ? 3*i+1 : 3*i+2));
+          break;
+        case 7:
+          sw = getValue(MIXSRC_SH-1) > 0 ? 3*i+1 : 3*i;
+          break;
+        default:
+        {
+          val = getValue(MIXSRC_SA+i-1);
+          sw = ((val < 0) ? 3*i+1 : ((val == 0) ? 3*i+2 : 3*i+3));
+          break;
+        }
       }
+      putsSwitches((g_eeGeneral.view == VIEW_INPUTS) ? (i<4 ? 8*FW+3 : 24*FW+1) : (i<4 ? 3*FW+2 : 8*FW-1), (i%4)*FH+3*FH, sw, 0);
     }
-    putsSwitches((g_eeGeneral.view == VIEW_INPUTS) ? (i<4 ? 8*FW+3 : 24*FW+1) : (i<4 ? 3*FW+2 : 8*FW-1), (i%4)*FH+3*FH, sw, 0);
+  } else {
+    lcd_bmp(BITMAP_X - 55, BITMAP_Y - 8, modelBitmap);
   }
 
   if (g_eeGeneral.view == VIEW_TIMERS) {
@@ -677,6 +683,17 @@ void menuMainView(uint8_t event)
   else if (g_eeGeneral.view == VIEW_INPUTS) {
     // Sticks
     doMainScreenGraphics();
+  }
+  else if (g_eeGeneral.view == VIEW_STATES) {
+    for (uint8_t i = 0; i < MAX_STATES; i++) {
+      uint8_t state_value = getState(i);
+      if (state_value < 255) {
+        lcd_putsnAtt(20 * FW, (i % MAX_STATES) * FH + 2 * FH, g_model.statesValues[i][state_value], sizeof(state_value_t), ZCHAR);
+      }
+    }
+    if (TELEMETRY_STREAMING() && frskyData.rssi[0].value == 0) {
+      lcd_putsAtt(20 * FW, MAX_STATES * FH + 2 * FH, STR_FAILSAFE_ACTIVE, BLINK);
+    }
   }
   else {
     // Custom Switches

@@ -52,6 +52,9 @@ enum EnumTabModel {
   e_MixAll,
   e_Limits,
   IF_CURVES(e_CurvesAll)
+#if defined(STATES)
+  e_States,
+#endif
 #if LCD_W >= 212
   IF_GVARS(e_GVars)
 #endif
@@ -71,6 +74,7 @@ void menuModelMixAll(uint8_t event);
 void menuModelLimits(uint8_t event);
 void menuModelCurvesAll(uint8_t event);
 void menuModelGVars(uint8_t event);
+void menuModelStates(uint8_t event);
 void menuModelCustomSwitches(uint8_t event);
 void menuModelCustomFunctions(uint8_t event);
 void menuModelTelemetry(uint8_t event);
@@ -86,6 +90,9 @@ const MenuFuncP_PROGMEM menuTabModel[] PROGMEM = {
   menuModelMixAll,
   menuModelLimits,
   IF_CURVES(menuModelCurvesAll)
+#if defined(STATES)
+  menuModelStates,
+#endif
 #if LCD_W >= 212 && defined(GVARS) && defined(FLIGHT_MODES)
   IF_GVARS(menuModelGVars)
 #endif
@@ -121,6 +128,10 @@ void selectModel(uint8_t sub)
   g_eeGeneral.currModel = sub;
   eeDirty(EE_GENERAL);
   eeLoadModel(sub);
+#if defined(STATES)
+  g_eeGeneral.view = 0;
+  resetStates();
+#endif
 }
 
 #if defined(SDCARD)
@@ -3704,6 +3715,33 @@ void menuModelCurvesAll(uint8_t event)
 }
 #endif
 
+#define STATES_ROWS (uint8_t)-1, 0, 0, 0, 0, 0
+
+#if defined(STATES)
+void menuModelStates(uint8_t event)
+{
+  uint8_t lcd_lines = (MAX_STATE_VALUES + 1) * MAX_STATES + 1;
+  MENU(STR_MENUSTATES, menuTabModel, e_States, lcd_lines, {(uint8_t)-1, STATES_ROWS, STATES_ROWS, STATES_ROWS, STATES_ROWS});
+  uint8_t sub = m_posVert - 1;
+
+  for (uint8_t l=0; l<LCD_LINES-1; l++) {
+    uint8_t i = l + s_pgOfs;
+    uint8_t y = 1 + FH + l * FH;
+    uint8_t stateIndex = i / MAX_STATE_VALUES;
+    uint8_t stateValueIndex = i % (MAX_STATE_VALUES + 1);
+
+
+    if (stateValueIndex == 0) {
+      lcd_putsLeft(y, STR_STATE);
+      lcd_outdezAtt(7 * FW, y, stateIndex + 1, 0);
+    } else {
+      LcdFlags attr = (sub == i ? ((s_editMode > 0) ? BLINK|INVERS : INVERS) : 0);
+      editName(10 * FW, y, g_model.statesValues[stateIndex][stateValueIndex - 1], sizeof(state_value_t), event, attr);
+    }
+  }
+}
+#endif
+
 #if LCD_W >= 212 && defined(GVARS) && defined(FLIGHT_MODES)
 void menuModelGVars(uint8_t event)
 {
@@ -4334,14 +4372,32 @@ void menuModelCustomFunctions(uint8_t event)
 #if defined(DEBUG)
             else if (CFN_FUNC(sd) == FUNC_TEST) {
 #if defined(GVARS)
+  #if defined(STATES)
+              func_displayed = FUNC_TEST - FUNC_TRAINER - NUM_STICKS - MAX_GVARS - MAX_STATES + 3;
+  #else
               func_displayed = FUNC_TEST - FUNC_TRAINER - NUM_STICKS - MAX_GVARS + 2;
+  #endif
 #else
+  #if defined(STATES)
+              func_displayed = FUNC_TEST - FUNC_TRAINER - NUM_STICKS - MAX_STATES + 2;
+  #else
               func_displayed = FUNC_TEST - FUNC_TRAINER - NUM_STICKS + 1;
+  #endif
 #endif
             }
 #endif
+#if defined(STATES)
+            else if (CFN_FUNC(sd) >= FUNC_ADJUST_STATE1 && CFN_FUNC(sd) <= FUNC_ADJUST_STATELAST) {
 #if defined(GVARS)
-            else if (CFN_FUNC(sd) >= FUNC_ADJUST_GV1) {
+              func_displayed = FUNC_ADJUST_STATE1 - FUNC_TRAINER - NUM_STICKS - MAX_GVARS + 2;
+#else
+              func_displayed = FUNC_ADJUST_STATE1 - FUNC_TRAINER - NUM_STICKS + 1;
+#endif
+              putsStrIdx(MODEL_CUSTOM_FUNC_2ND_COLUMN, y, STR_STATE, CFN_FUNC(sd)-FUNC_ADJUST_STATE1+1, attr);
+            }
+#endif
+#if defined(GVARS)
+            else if (CFN_FUNC(sd) >= FUNC_ADJUST_GV1 && CFN_FUNC(sd) <= FUNC_ADJUST_GVLAST) {
               func_displayed = FUNC_ADJUST_GV1 - FUNC_TRAINER - NUM_STICKS + 1;
               putsStrIdx(MODEL_CUSTOM_FUNC_2ND_COLUMN+7*FW, y, STR_GV, CFN_FUNC(sd)-FUNC_ADJUST_GV1+1, attr);
             }
@@ -4478,12 +4534,16 @@ void menuModelCustomFunctions(uint8_t event)
               val_min = -125; val_max = 125;
               lcd_outdezAtt(MODEL_CUSTOM_FUNC_3RD_COLUMN, y, val_displayed, attr|LEFT);
             }
-#if defined(GVARS)
-            else if (CFN_FUNC(sd) >= FUNC_ADJUST_GV1
-#if defined(DEBUG)
-                && CFN_FUNC(sd) <= FUNC_ADJUST_GVLAST
+#if defined(STATES)
+            else if (CFN_FUNC(sd) >= FUNC_ADJUST_STATE1 && CFN_FUNC(sd) <= FUNC_ADJUST_STATELAST) {
+              val_displayed = (int8_t)CFN_PARAM(sd);
+              val_max = MAX_STATES;
+              uint8_t selected_state = CFN_FUNC(sd) - FUNC_ADJUST_STATE1;
+              lcd_putsnAtt(MODEL_CUSTOM_FUNC_3RD_COLUMN, y, g_model.statesValues[selected_state][val_displayed], sizeof(state_value_t), ZCHAR | attr);
+            }
 #endif
-                ) {
+#if defined(GVARS)
+            else if (CFN_FUNC(sd) >= FUNC_ADJUST_GV1 && CFN_FUNC(sd) <= FUNC_ADJUST_GVLAST) {
               switch (CFN_GVAR_MODE(sd)) {
                 case FUNC_ADJUST_GVAR_CONSTANT:
                   val_displayed = (int8_t)CFN_PARAM(sd);
@@ -4531,7 +4591,7 @@ void menuModelCustomFunctions(uint8_t event)
         case 3:
           if (sd->swtch && (CFN_FUNC(sd) <= FUNC_INSTANT_TRIM
 #if defined(GVARS)
-              || CFN_FUNC(sd) >= FUNC_ADJUST_GV1
+              || (CFN_FUNC(sd) >= FUNC_ADJUST_GV1 && CFN_FUNC(sd) <= FUNC_ADJUST_GVLAST)
 #endif
 #if defined(CPUARM)
               || CFN_FUNC(sd) == FUNC_VOLUME

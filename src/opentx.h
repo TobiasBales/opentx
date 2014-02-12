@@ -853,6 +853,12 @@ extern void setTrimValue(uint8_t phase, uint8_t idx, int16_t trim);
   #define ROTARY_ENCODER_GRANULARITY (2)
 #endif
 
+#if defined(STATES)
+  uint8_t getState(uint8_t);
+  void setState(uint8_t, uint8_t);
+  void resetStates();
+#endif
+
 #if defined(GVARS)
   #if defined(PCBSTD)
     int16_t getGVarValue(int16_t x, int16_t min, int16_t max);

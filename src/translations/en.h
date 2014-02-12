@@ -177,6 +177,12 @@
 #define TR_CFN_VOLUME          "Volume\0   "
 #define TR_CFN_BG_MUSIC        "BgMusic\0  ""BgMusic ||"
 
+#if defined(STATES)
+  #define TR_STATE             "State \0   "
+#else
+  #define TR_STATE
+#endif
+
 #if defined(SDCARD)
   #define TR_SDCLOGS           "SD Logs\0  "
 #else
@@ -196,11 +202,11 @@
 #endif
 
 #if defined(CPUARM)
-  #define TR_VFSWFUNC          "Safety\0   ""Trainer\0  ""Inst. Trim" TR_SOUND TR_HAPTIC "Reset\0    " TR_VVARIO TR_PLAY_TRACK TR_PLAY_VALUE TR_SDCLOGS TR_CFN_VOLUME "Backlight\0" TR_CFN_BG_MUSIC TR_CFN_ADJUST_GVAR TR_CFN_TEST
+  #define TR_VFSWFUNC          "Safety\0   ""Trainer\0  ""Inst. Trim" TR_SOUND TR_HAPTIC "Reset\0    " TR_VVARIO TR_PLAY_TRACK TR_PLAY_VALUE TR_SDCLOGS TR_CFN_VOLUME "Backlight\0" TR_CFN_BG_MUSIC TR_CFN_ADJUST_GVAR TR_STATE TR_CFN_TEST
 #elif defined(PCBGRUVIN9X)
-  #define TR_VFSWFUNC          "Safety\0   ""Trainer\0  ""Inst. Trim" TR_SOUND TR_HAPTIC "Reset\0    " TR_VVARIO TR_PLAY_TRACK TR_PLAY_BOTH TR_PLAY_VALUE TR_SDCLOGS "Backlight\0" TR_CFN_ADJUST_GVAR TR_CFN_TEST
+  #define TR_VFSWFUNC          "Safety\0   ""Trainer\0  ""Inst. Trim" TR_SOUND TR_HAPTIC "Reset\0    " TR_VVARIO TR_PLAY_TRACK TR_PLAY_BOTH TR_PLAY_VALUE TR_SDCLOGS "Backlight\0" TR_CFN_ADJUST_GVAR TR_STATE TR_CFN_TEST
 #else
-  #define TR_VFSWFUNC          "Safety\0   ""Trainer\0  ""Inst. Trim" TR_SOUND TR_HAPTIC "Reset\0    " TR_VVARIO TR_PLAY_TRACK TR_PLAY_BOTH TR_PLAY_VALUE "Backlight\0" TR_CFN_ADJUST_GVAR TR_CFN_TEST
+  #define TR_VFSWFUNC          "Safety\0   ""Trainer\0  ""Inst. Trim" TR_SOUND TR_HAPTIC "Reset\0    " TR_VVARIO TR_PLAY_TRACK TR_PLAY_BOTH TR_PLAY_VALUE "Backlight\0" TR_CFN_ADJUST_GVAR TR_STATE TR_CFN_TEST
 #endif
 
 #define LEN_VFSWRESET          TR("\005", "\011")
@@ -381,6 +387,7 @@
 #define TR_MOVINGMODEL         "Moving model..."
 #define TR_LOADINGMODEL        "Loading model..."
 #define TR_NAME                "Name"
+#define TR_VALUES              "Values"
 #define TR_MODELNAME           "Model Name"
 #define TR_PHASENAME           "Mode Name"
 #define TR_MIXNAME             "Mix Name"
@@ -615,6 +622,7 @@
 #define TR_GLOBAL_VARS         "Global Variables"
 #define TR_GLOBAL_VAR          "Global Variable"
 #define TR_MENUGLOBALVARS      "GLOBAL VARIABLES"
+#define TR_MENUSTATES          "STATES"
 #define TR_OWN                 "Own"
 #define TR_DATE                "Date"
 #define TR_ROTARY_ENCODER      "R.Encs"
@@ -623,6 +631,7 @@
 #define TR_EXTERNALRF          "External RF"
 #define TR_FAILSAFE            INDENT "Failsafe mode"
 #define TR_FAILSAFESET         "FAILSAFE SETTINGS"
+#define TR_FAILSAFE_ACTIVE     "Failsafe"
 #define TR_COUNTRYCODE         "Country Code"
 #define TR_VOICELANG           "Voice Language"
 #define TR_UNITSSYSTEM         "Units"

@@ -1300,6 +1300,25 @@ void incRotaryEncoder(uint8_t idx, int8_t inc)
 }
 #endif
 
+#if defined(STATES)
+uint8_t g_states[MAX_STATES];
+
+uint8_t getState(uint8_t state) {
+  return g_states[state];
+}
+
+void setState(uint8_t state, uint8_t value) {
+  g_states[state] = value;
+}
+
+void resetStates() {
+  for (uint8_t i = 0; i < MAX_STATES; i++) {
+    g_states[i] = 255;
+  }
+}
+
+#endif
+
 #if defined(GVARS)
 #if defined(PCBSTD)
 int16_t getGVarValue(int16_t x, int16_t min, int16_t max)
@@ -2732,6 +2751,15 @@ void evalFunctions()
         }
 #endif
 
+#if defined(STATES)
+        else if (CFN_FUNC(sd) >= FUNC_ADJUST_STATE1 && CFN_FUNC(sd) <= FUNC_ADJUST_STATELAST)
+        {
+          uint8_t selected_state = CFN_FUNC(sd) - FUNC_ADJUST_STATE1;
+          uint8_t selected_value = CFN_PARAM(sd);
+          setState(selected_state, selected_value);
+        }
+#endif
+
 #if defined(DEBUG)
         else if (CFN_FUNC(sd) == FUNC_TEST) {
           testFunc();
@@ -3585,6 +3613,11 @@ void opentxStart()
 #if defined(CPUARM)
   eeLoadModel(g_eeGeneral.currModel);
 #endif
+#if defined(STATES)
+  g_eeGeneral.view = 0;
+  resetStates();
+#endif
+
 
   checkAlarm();
   checkAll();
